@@ -54,26 +54,16 @@ def plot_robot(joint_positions, rotation_axes=None, obstacles=None, title="Robot
         )
 
     # Mark end-effector and draw a tool shape (a line sticking out)
-    end_effector = np.array(joint_positions[-1])
+    tool_tip = np.array(joint_positions[-1])
+    print(tool_tip)
 
     # Create a mock direction same as last link
-    tool_length = 0.04
-    tool_direction = end_effector - np.array(joint_positions[-2]) # Direction of last link
+    tool_direction = tool_tip - np.array(joint_positions[-2]) # Direction of last link
     tool_direction = tool_direction / np.linalg.norm(tool_direction)
-    tool_tip = end_effector + tool_length * tool_direction
 
-    # Draw the tool as a short line
-    ax.plot(
-        [end_effector[0], tool_tip[0]],
-        [end_effector[1], tool_tip[1]],
-        [end_effector[2], tool_tip[2]],
-        color='green',
-        linewidth=2,
-        label='End-Effector Tool'
-    )
 
     # Draw an "X" to represent the gripper
-    grip_size = 0.02  # Half-length of the cross arms (5mm)
+    grip_size = 0.02
 
     # Add orthogonal lines in the plane perpendicular to tool_direction
     arbitrary = np.array([1, 0, 0]) if not np.allclose(tool_direction, [1, 0, 0]) else np.array([0, 1, 0])
@@ -104,7 +94,7 @@ def plot_robot(joint_positions, rotation_axes=None, obstacles=None, title="Robot
     # Obstacles to be added for Task 5
     if obstacles:
         for obs in obstacles:
-            ax.scatter(*obs['position'], color='r', s=100, label='Obstacle')
+            ax.scatter(*obs['position'], color='purple', s=100, label='Obstacle')
 
     # Ensure equal axis scaling by adjusting the limits
     all_points = np.array(joint_positions + [tool_tip])
