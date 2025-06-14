@@ -21,7 +21,7 @@ class Robot:
         # DH parameters: [theta, a, d, alpha] from UR5
         self.dh_param = [
             [0, 0, 0.089159, np.pi / 2],
-            [0, -0.425, 0, 0],
+            [-np.pi / 2, -0.425, 0, 0],
             [0, -0.39225, 0, 0],
             [0, 0, 0.10915, np.pi / 2],
             [0, 0, 0.09465, -np.pi / 2],

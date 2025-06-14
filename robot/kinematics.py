@@ -110,6 +110,9 @@ def analytical_ik(pd, dh):
 
                     q4 = q234 - q2 - q3
 
+                    # Offset for theta2 = pi / 2 in robot description
+                    q2 = q2 + np.pi/2
+
                     solution = np.degrees([q1, q2, q3, q4, q5, q6])
                     print("Solution for sign1:", sign1, "sign5:", sign5, "sign3:", sign3, ":", solution)
                     solutions.append(solution)
