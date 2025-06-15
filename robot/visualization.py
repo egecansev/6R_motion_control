@@ -151,8 +151,8 @@ def visualize_trajectory(joint_trajectory, cartesian_trajectory, all_joint_posit
 
         # Plot the robot at current frame
         joint_positions, rotation_axes = all_joint_positions[frame]
-        for i, joint in enumerate(joint_positions):
-            print(f"Joint {i + 1} z-position: {joint[2]}")
+        # for i, joint in enumerate(joint_positions):
+        #     print(f"Joint {i + 1} z-position: {joint[2]}")
         plot_robot(joint_positions, rotation_axes, ax=ax, obstacles=None, title=f"Step {frame+1}")
 
         ax.legend()

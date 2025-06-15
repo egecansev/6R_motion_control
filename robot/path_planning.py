@@ -5,6 +5,7 @@ from robot import analytical_ik, check_collisions, fk
 
 
 def generate_cartesian_trajectory(start_pose, end_pose, steps = 50):
+    steps += 1
     int_pos = []
     poses = []
     pos_start = np.array(start_pose[:3])
@@ -13,7 +14,7 @@ def generate_cartesian_trajectory(start_pose, end_pose, steps = 50):
     rpy_end = np.array(end_pose[3:])
 
     # Use Spherical Linear Interpolation of Rotations (SLERP) for rotations
-    key_rots = R.from_euler('xyz', [rpy_start, rpy_end])
+    key_rots = R.from_euler('xyz', [rpy_start, rpy_end], degrees= True)
     key_times = [0, 1]
     slerp = Slerp(key_times, key_rots)
 
@@ -21,12 +22,14 @@ def generate_cartesian_trajectory(start_pose, end_pose, steps = 50):
     for t in times:
         int_pos.append((1 - t) * pos_start + t * pos_end)
     int_rot = slerp(times)
-    int_rpy = int_rot.as_euler('xyz', degrees=True)
+    # int_rpy = int_rot.as_euler('xyz', degrees=True)
 
     for i in range(steps):
         pos = int_pos[i]
-        rpy = int_rpy[i]
-        poses.append([*pos, *rpy])
+        #rpy = int_rpy[i]
+        #poses.append([*pos, *rpy])
+        rot_mat = int_rot[i].as_matrix()
+        poses.append([*pos, rot_mat])
     return poses
 
 

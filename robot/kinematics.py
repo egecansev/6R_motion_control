@@ -41,7 +41,7 @@ def analytical_ik(pd, dh):
     solutions = []
     (px, py, pz) = pd[:3]
 
-    r = euler_to_matrix(pd[3:])
+    r = pd[3]
     r11 = r[0,0]
     r12 = r[0, 1]
     r13 = r[0, 2]
