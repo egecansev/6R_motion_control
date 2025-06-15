@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 import numpy as np
 
-def plot_robot(joint_positions, rotation_axes=None, obstacles=None, title="Robot Pose"):
+def plot_robot(joint_positions, rotation_axes=None, ax=None, obstacles=None, title="Robot Pose"):
     xs, ys, zs = zip(*joint_positions)
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
 
 
     # Plot robot links
@@ -55,7 +57,7 @@ def plot_robot(joint_positions, rotation_axes=None, obstacles=None, title="Robot
 
     # Mark end-effector and draw a tool shape (a line sticking out)
     tool_tip = np.array(joint_positions[-1])
-    print(tool_tip)
+    #print(tool_tip)
 
     # Create a mock direction same as last link
     tool_direction = tool_tip - np.array(joint_positions[-2]) # Direction of last link
@@ -129,5 +131,38 @@ def plot_robot(joint_positions, rotation_axes=None, obstacles=None, title="Robot
     ax.set_title(title)
     ax.legend()
     ax.set_box_aspect([1, 1, 1])  # Equal aspect ratio
-    plt.show()
+    #plt.show()
 
+def visualize_trajectory(joint_trajectory, cartesian_trajectory, all_joint_positions, dh):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Extract x, y, z coordinates
+    ee_x = [p[0] for p in cartesian_trajectory]
+    ee_y = [p[1] for p in cartesian_trajectory]
+    ee_z = [p[2] for p in cartesian_trajectory]
+
+    def update(frame):
+        ax.cla()
+
+        # Plot static Cartesian trajectory
+        ax.plot(ee_x, ee_y, ee_z, color='blue', label='Cartesian Trajectory')
+        #ax.scatter(ee_x[frame], ee_y[frame], ee_z[frame], color='red', s=50, label='End-effector')
+
+        # Plot the robot at current frame
+        joint_positions, rotation_axes = all_joint_positions[frame]
+        for i, joint in enumerate(joint_positions):
+            print(f"Joint {i + 1} z-position: {joint[2]}")
+        plot_robot(joint_positions, rotation_axes, ax=ax, obstacles=None, title=f"Step {frame+1}")
+
+        ax.legend()
+        ax.set_xlim([-1, 1])
+        ax.set_ylim([-1, 1])
+        ax.set_zlim([0, 1.5])
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+
+    ani = FuncAnimation(fig, update, frames=len(joint_trajectory), interval=100)
+    plt.tight_layout()
+    plt.show()
