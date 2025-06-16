@@ -96,7 +96,7 @@ def plot_robot(joint_positions, rotation_axes=None, ax=None, obstacles=None, tit
     # Obstacles to be added for Task 5
     if obstacles:
         for obs in obstacles:
-            ax.scatter(*obs['position'], color='purple', s=100, label='Obstacle')
+            ax.scatter(*obs['position'], color='purple', s=100 * obs['radius'], label='Obstacle')
 
     # Ensure equal axis scaling by adjusting the limits
     all_points = np.array(joint_positions + [tool_tip])
@@ -146,7 +146,7 @@ def visualize_trajectory(joint_trajectory, cartesian_trajectory, all_joint_posit
         ax.cla()
 
         # Plot static Cartesian trajectory
-        ax.plot(ee_x, ee_y, ee_z, color='blue', label='Cartesian Trajectory')
+        ax.plot(ee_x, ee_y, ee_z, color='blue', linestyle='--', label='Cartesian Trajectory')
         #ax.scatter(ee_x[frame], ee_y[frame], ee_z[frame], color='red', s=50, label='End-effector')
 
         # Plot the robot at current frame

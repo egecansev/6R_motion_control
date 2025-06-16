@@ -1,6 +1,4 @@
-from robot import (Robot, fk, analytical_ik, plot_robot,
-                   check_collisions, generate_cartesian_trajectory,
-                   generate_joint_trajectory, visualize_trajectory)
+from robot import Robot, generate_joint_trajectory, visualize_trajectory
 import numpy as np
 import matplotlib.pyplot as plt
 import random
@@ -47,7 +45,7 @@ def random_cartesian_pose(x_range, y_range, z_range, rpy_range_deg):
     return [x, y, z, roll, pitch, yaw]
 
 
-def generate_random_obstacles(x_range, y_range, z_range, radius_range=(0.02, 0.08)):
+def generate_random_obstacles(x_range, y_range, z_range, radius_range=(0.05, 0.2)):
     """
     Generate a list of random obstacles within given bounds.
 
@@ -60,7 +58,7 @@ def generate_random_obstacles(x_range, y_range, z_range, radius_range=(0.02, 0.0
         List[Dict]: Each dict has 'position' and 'radius'.
     """
     obstacles = []
-    num_obstacles = random.randint(0,0)
+    num_obstacles = random.randint(0,1)
     for _ in range(num_obstacles):
         x = np.random.uniform(*x_range)
         y = np.random.uniform(*y_range)
@@ -79,8 +77,8 @@ def generate_random_obstacles(x_range, y_range, z_range, radius_range=(0.02, 0.0
 robot = Robot()
 
 # Define reasonable limits for your robot's workspace
-x_range = (-0.4, 0.4)
-y_range = (-0.4, 0.4)
+x_range = (-0.6, 0.6)
+y_range = (-0.6, 0.6)
 z_range = (0.1, 0.6)  # avoid below-ground z
 
 rpy_range_deg = (-180, 180)
@@ -88,14 +86,14 @@ print("Please select start and goal poses.")
 while True:
     start_pose = random_cartesian_pose(x_range, y_range, z_range, rpy_range_deg)
     end_pose   = random_cartesian_pose(x_range, y_range, z_range, rpy_range_deg)
-    # start_pose = [0.010202292134324664, -0.16733076354263393, 0.3881742612603736, -13.573202335727217,
-    #               -149.11652805933522, -168.1781440432909]
-    # end_pose = [-0.0012469455833961085, 0.19950280188920955, 0.2265028296337988, -4.348312891684998, -49.34550199649263,
-    #             9.160159508943792]
-    # start_pose = [-0.010202292134324664, -0.16733076354263393, 0.3881742612603736, -13.573202335727217,
-    #               -149.11652805933522, -168.1781440432909]
-    # end_pose = [0.010202292134324664, 0.16733076354263393, 0.2265028296337988, -4.348312891684998, -49.34550199649263,
-    #             9.160159508943792]
+    # start_pose = [-0.05804681833543934, 0.5195282788249148, 0.46450439180398284, 72.70057560604963, 79.92798550917547, -75.13151167832743]
+    # end_pose = [-0.31736948862316594, -0.4936821454316658, 0.2442967510681431, -24.124468841999715, -32.31823487198611, -35.84207166444298]
+    # start_pose = [0.11883671139255181, -0.28969741185045106, 0.18428628863392274, 31.004938519887958, 164.83590493755548, -130.73508261938125]
+    # end_pose = [0.39266481560570776, 0.3419827060942672, 0.4503110052328134, -89.5844053303092, 53.29334258767639, 1.953575315096515]
+    # start_pose = [0.010202292134324664, -0.16733076354263393, 0.3881742612603736, -13.573202335727217, -149.11652805933522, -168.1781440432909]
+    # end_pose = [-0.0012469455833961085, 0.19950280188920955, 0.2265028296337988, -4.348312891684998, -49.34550199649263, 9.160159508943792]
+    # start_pose = [-0.010202292134324664, -0.16733076354263393, 0.3881742612603736, -13.573202335727217, -149.11652805933522, -168.1781440432909]
+    # end_pose = [0.001202292134324664, 0.19733076354263393, 0.2265028296337988, -4.348312891684998, -49.34550199649263, 9.160159508943792]
     # start_pose = [-0.40023288735170537, 0.3710056200569316, 0.509513139568647, -37.366908022995375, 111.24864565899628, -170.562625252173]
     # end_pose = [0.4310279617716294, -0.23696263433554782, 0.42179494232712045, 126.70289290352565, -104.34758843993417, 78.94755997475363]
     # start_pose = [0.09711834210875364, -0.13977407455432644, 0.14580460873171855, -46.7901845565174, -32.34707952908667, 170.91769956125387]
@@ -107,49 +105,39 @@ while True:
     if check_workspace(start_pose, end_pose):
         break
 
-
+x_range_obs = ((start_pose[0] + end_pose[0]) / 4, 3 * (start_pose[0] + end_pose[0]) / 4)
+y_range_obs = ((start_pose[1] + end_pose[1]) / 4, 3 * (start_pose[1] + end_pose[1]) / 4)
+z_range_obs = ((start_pose[2] + end_pose[2]) / 4, 3 * (start_pose[2] + end_pose[2]) / 4)
 print("Start Pose:", start_pose)
 print("End Pose:", end_pose)
-obstacles = generate_random_obstacles(x_range, y_range, z_range)
+obstacles = generate_random_obstacles(x_range_obs, y_range_obs, z_range_obs)
 # jp, rax = fk(robot.dh_param, np.zeros(6))
 # plot_robot(jp, rax, obstacles=obstacles, title=f"Pose for {rax} degrees")
 cart_trajectory, trajectory, joints_fk = generate_joint_trajectory(start_pose, end_pose, robot.dh_param, obstacles)
 joint_trajectory = np.array(trajectory)
-for i in range(joint_trajectory.shape[1]):
-    plt.plot(joint_trajectory[:, i], label=f'Joint {i+1}')
-    print(f'Joint {i+1}:', joint_trajectory[:, i])
-plt.legend()
-plt.title("Joint angles over trajectory")
-plt.xlabel("Step")
-plt.ylabel("Angle (rad)")
-plt.grid()
-plt.show()
 
+if joint_trajectory.ndim != 2 or joint_trajectory.shape[0] == 0:
+    print("No valid solution found to plot.")
+else:
 
+    if not np.allclose(joints_fk[0][0][-1], start_pose[:3], atol=1e-3):
+        print("Joint trajectory does not start at the expected start pose!")
+        print("Expected:", start_pose[:3])
+        print("Got     :", joints_fk[0][0][-1])
+    else:
+        print("Joint trajectory starts at the expected pose.")
+        if not np.allclose(joints_fk[-1][0][-1], end_pose[:3], atol=1e-3):
+            print("Joint trajectory does not reach the expected goal pose!")
+            print("Expected:", end_pose[:3])
+            print("Got     :", joints_fk[-1][0][-1])
+        for i in range(joint_trajectory.shape[1]):
+            plt.plot(joint_trajectory[:, i], label=f'Joint {i+1}')
+            print(f'Joint {i+1}:', joint_trajectory[:, i])
+        plt.legend()
+        plt.title("Joint angles over trajectory")
+        plt.xlabel("Step")
+        plt.ylabel("Angle (rad)")
+        plt.grid()
+        plt.show()
 
-
-visualize_trajectory(joint_trajectory, cart_trajectory, joints_fk, obstacles= obstacles)
-# while True:
-#         user_input = input("Joint angles (deg): ")
-#         if user_input.strip().lower() == 'q':
-#             print("Exiting.")
-#             break
-#
-#         parts = user_input.strip().split()
-#         if len(parts) != 6:
-#             print("Please enter exactly 6 numbers.")
-#             continue
-#
-#         try:
-#             deg_angles = list(map(float, parts))
-#         except ValueError:
-#             print("Invalid input, please enter numbers only.")
-#             continue
-#
-#         rad_angles = np.radians(deg_angles)
-#         joint_positions, rotation_axes = fk(robot.dh_param, rad_angles)
-#
-#         obstacles = [
-#             {'position': desired_pose[:3], 'radius': 0.02}
-#         ]
-#         plot_robot(joint_positions, rotation_axes, obstacles=obstacles, title=f"Pose for {deg_angles} degrees")
+        visualize_trajectory(joint_trajectory, cart_trajectory, joints_fk, obstacles= obstacles)

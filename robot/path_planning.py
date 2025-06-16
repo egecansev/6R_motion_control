@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R, Slerp
-from robot import analytical_ik, check_collisions, fk
+from robot import analytical_ik, check_collisions, fk, get_closest_point_to_obstacle
 from scipy.signal import savgol_filter
 
 def get_jacobian(q, z):
@@ -15,13 +15,23 @@ def get_jacobian(q, z):
 
     return jacobian
 
-def inject_waypoint_around_dead_zone(start, end, dead_zone_radius= 0.2):
-    # For example, offset a waypoint around the dead zone edge
-    # Find midpoint between start and end
-    mid = (start + end) / 2
+def get_closest_point_to_base(start, end):
 
-    # Shift midpoint in XY plane away from base center along a vector
-    offset_dir = np.array([mid[0], mid[1]])
+    # Only consider 2D XY plane for projection
+    projection_of_base = (np.dot(- start[:2], end[:2] - start[:2]) /
+                  np.dot(end[:2] - start[:2], end[:2] - start[:2]))
+
+    # 3D closest point to base
+    closest_to_base = start[:3] + projection_of_base * (end[:3] - start[:3])
+
+    return closest_to_base
+
+
+def inject_waypoint_around_deadzone(closest, dead_zone_radius= 0.2):
+
+    waypoint = np.zeros(3)
+    # Determine offset direction from the base
+    offset_dir = np.array([closest[0], closest[1]])
 
     if np.linalg.norm(offset_dir) < 1e-6:
         # Midpoint is too close to base center, use a default safe direction
@@ -29,12 +39,31 @@ def inject_waypoint_around_dead_zone(start, end, dead_zone_radius= 0.2):
 
     offset_dir = offset_dir / np.linalg.norm(offset_dir)
     offset_dist = dead_zone_radius * 2
-    mid[:2] += offset_dir * offset_dist
-    mid[2] += 0.05
+    waypoint[:2] = closest[:2] + offset_dir * offset_dist
+    waypoint[2] = closest[2] + 0.05
 
-    return mid
+    return waypoint
 
-def generate_cartesian_trajectory(start_pose, end_pose, steps = 50):
+def inject_waypoint_around_obstacle(obs_position, obs_radius, closest):
+
+    # Determine offset direction from the base
+    offset_dir = np.array(closest - obs_position)
+    offset_norm = np.linalg.norm(offset_dir)
+
+    if offset_norm < 1e-6:
+        # Midpoint is too close to base center, use a default safe direction
+        offset_dir = np.array([1.0, 1.0, 1.0])
+
+    offset_dir = offset_dir / offset_norm
+    if offset_norm < obs_radius:
+        offset_dist = obs_radius * 2
+    else:
+        offset_dist = offset_norm * 2
+    waypoint = closest + offset_dir * offset_dist
+
+    return waypoint
+
+def generate_cartesian_trajectory(start_pose, end_pose, steps = 50, obstacles = None):
     steps += 1
     int_pos = []
     poses = []
@@ -44,11 +73,22 @@ def generate_cartesian_trajectory(start_pose, end_pose, steps = 50):
     mid_point = np.zeros(3)
 
     # Check if the shortest route between start and end point passes through the dead-zone around base
-    projection = (np.dot(- pos_start[:2], pos_end[:2] - pos_start[:2]) /
-                np.dot(pos_end[:2] - pos_start[:2], pos_end[:2] - pos_start[:2]))
-    closest = pos_start[:2] + projection * (pos_end[:2] - pos_start[:2])
-    if np.linalg.norm(closest) < dead_zone_radius:
-        mid_point = inject_waypoint_around_dead_zone(pos_start, pos_end)
+
+    closest = get_closest_point_to_base(pos_start, pos_end)
+    if np.linalg.norm(closest[:2]) < dead_zone_radius:
+        mid_point = inject_waypoint_around_deadzone(closest)
+
+    # Check if the shortest route between start and end point passes through or around an obstacle
+    for obs in obstacles:
+        obs_pos = np.array(obs['position'])
+        closest = get_closest_point_to_obstacle(pos_start, pos_end, obs_pos)
+        dist_to_path = np.linalg.norm(closest - obs_pos)
+
+        if dist_to_path < obs['radius'] * 1.2:  # Define a safe buffer
+            mid_point = inject_waypoint_around_obstacle(obs_pos, obs['radius'], closest)
+            break  # Inject one waypoint for now — extend later for multiple
+
+    # TODO: Multiple obstacles near dead-zone
 
     times = np.linspace(0, 1, steps)
     for t in times:
@@ -58,6 +98,7 @@ def generate_cartesian_trajectory(start_pose, end_pose, steps = 50):
             # Quadratic Bezier curve
             int_pos.append((1 - t)**2 * pos_start + 2*(1 - t)*t * mid_point + t**2 * pos_end)
 
+    # TODO: Update Bezier curve when multiple midpoints
 
 
     rpy_start = np.array(start_pose[3:])
@@ -78,7 +119,7 @@ def generate_cartesian_trajectory(start_pose, end_pose, steps = 50):
 
 
 def generate_joint_trajectory(start, end, dh, obstacles):
-    cartesian_poses = generate_cartesian_trajectory(start, end, 50)
+    cartesian_poses = generate_cartesian_trajectory(start, end, 50, obstacles)
     # Separate positions and rotations
     positions = np.array([pose[:3] for pose in cartesian_poses])
     rotations = [pose[3] for pose in cartesian_poses]  # R is 3x3 matrix
@@ -92,6 +133,8 @@ def generate_joint_trajectory(start, end, dh, obstacles):
     joint_trajectory = []
     failed_steps = []
     all_joint_positions = []
+
+    # Weighted norm to minimize the motion by joints 2, 3, 4
     weights = np.array([0.5, 2.0, 2.0, 2.0, 0.5, 0.5])
     #weights = np.ones(6)
 
@@ -133,13 +176,15 @@ def generate_joint_trajectory(start, end, dh, obstacles):
     trajectory_np = np.array(joint_trajectory)  # shape (N, 6)
 
     # Apply Savitzky-Golay filter per joint
-    smoothed = np.zeros_like(trajectory_np)
-    for i in range(trajectory_np.shape[1]):
-        smoothed[:, i] = savgol_filter(trajectory_np[:, i], window_length=7, polyorder=3)
+    if len(trajectory_np) >= 7:
+        smoothed = np.zeros_like(trajectory_np)
+        for i in range(trajectory_np.shape[1]):
+            smoothed[:, i] = savgol_filter(trajectory_np[:, i], window_length=7, polyorder=3)
 
-    # Force start and end points to remain exact
-    smoothed[0] = trajectory_np[0]
-    smoothed[-1] = trajectory_np[-1]
-    joint_trajectory = smoothed
+        # Force start and end points to remain exact
+        smoothed[0] = trajectory_np[0]
+        smoothed[-1] = trajectory_np[-1]
+        joint_trajectory = smoothed
+
     return cartesian_poses, joint_trajectory, all_joint_positions
 
