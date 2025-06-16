@@ -1,78 +1,8 @@
 from robot import Robot, generate_joint_trajectory, visualize_trajectory
+from utils import check_workspace, random_cartesian_pose, generate_random_obstacles
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-
-
-def check_workspace(start_pose, end_pose):
-    outer = robot.outer_limit
-    inner = robot.inner_limit
-    start_range = np.linalg.norm(start_pose[:3])
-    end_range = np.linalg.norm(end_pose[:3])
-    if start_range > outer:
-        if end_range > outer:
-            print("Both selected poses are out of workspace! Please select new poses.")
-        else:
-            print("First selected pose is out of workspace! Please select a new pose.")
-    else:
-        if end_range > outer:
-            print("Second selected pose is out of workspace! Please select a new pose.")
-        else:
-            start_range = np.linalg.norm(start_pose[:2])
-            end_range = np.linalg.norm(end_pose[:2])
-            if start_range < inner:
-                if end_range < inner:
-                    print("Beware! Both selected poses are beyond inner workspace limit! Unexpected behavior might occur!")
-                else:
-                    print("Beware! First selected pose is beyond inner workspace limit! Unexpected behavior might occur!")
-            else:
-                if end_range < inner:
-                    print("Beware! Second selected pose is beyond inner workspace limit! Unexpected behavior might occur!")
-            return True
-    return False
-
-
-
-def random_cartesian_pose(x_range, y_range, z_range, rpy_range_deg):
-    x = np.random.uniform(*x_range)
-    y = np.random.uniform(*y_range)
-    z = np.random.uniform(*z_range)
-
-    roll = np.random.uniform(*rpy_range_deg)
-    pitch = np.random.uniform(*rpy_range_deg)
-    yaw = np.random.uniform(*rpy_range_deg)
-
-    return [x, y, z, roll, pitch, yaw]
-
-
-def generate_random_obstacles(x_range, y_range, z_range, radius_range=(0.05, 0.2)):
-    """
-    Generate a list of random obstacles within given bounds.
-
-    Args:
-        num_obstacles (int): Number of obstacles to generate.
-        workspace_bounds (dict): Dictionary with 'x', 'y', 'z' bounds as (min, max) tuples.
-        radius_range (tuple): Minimum and maximum radius of obstacles.
-
-    Returns:
-        List[Dict]: Each dict has 'position' and 'radius'.
-    """
-    obstacles = []
-    num_obstacles = random.randint(0,1)
-    for _ in range(num_obstacles):
-        x = np.random.uniform(*x_range)
-        y = np.random.uniform(*y_range)
-        z = np.random.uniform(*z_range)
-        radius = np.random.uniform(*radius_range)
-
-        obstacle = {
-            'position': [x, y, z],
-            'radius': radius
-        }
-        obstacles.append(obstacle)
-
-    return obstacles
-
 
 robot = Robot()
 
@@ -102,7 +32,7 @@ while True:
     # end_pose = [0.22342671479261145, -0.04460715791012193, 0.19215167456978802, 145.6943792147389, 131.12732604039508, -119.01345979500289]
     # start_pose = [0.027897204353937444, -0.04131164919222857, 0.33053197897344666, 9.64692194168012, 61.18872855865001, -67.03688143824859]
     # end_pose = [-0.3494178246870699, -0.23223613693563952, 0.1752316130742211, 158.21525068885455, 122.77606579326624, -73.34990918964056]
-    if check_workspace(start_pose, end_pose):
+    if check_workspace(start_pose, end_pose, robot):
         break
 
 x_range_obs = ((start_pose[0] + end_pose[0]) / 4, 3 * (start_pose[0] + end_pose[0]) / 4)
@@ -111,8 +41,6 @@ z_range_obs = ((start_pose[2] + end_pose[2]) / 4, 3 * (start_pose[2] + end_pose[
 print("Start Pose:", start_pose)
 print("End Pose:", end_pose)
 obstacles = generate_random_obstacles(x_range_obs, y_range_obs, z_range_obs)
-# jp, rax = fk(robot.dh_param, np.zeros(6))
-# plot_robot(jp, rax, obstacles=obstacles, title=f"Pose for {rax} degrees")
 cart_trajectory, trajectory, joints_fk = generate_joint_trajectory(start_pose, end_pose, robot.dh_param, obstacles)
 joint_trajectory = np.array(trajectory)
 
