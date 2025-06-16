@@ -28,6 +28,9 @@ class Robot:
             [0, 0, 0.0823, 0]
         ]
 
+        self.outer_limit = 0.8
+        self.inner_limit = 0.2
+
     def get_joint_limits(self):
         joint_limits = []
         for joint in self.Joints:

@@ -37,6 +37,9 @@ def euler_to_matrix(pd):
     rot_mat = R.from_euler('xyz', [roll, pitch, yaw])
     return rot_mat.as_matrix()
 
+def wrap_angle(theta):
+    return (theta + np.pi) % (2 * np.pi) - np.pi
+
 def analytical_ik(pd, dh):
     solutions = []
     (px, py, pz) = pd[:3]
@@ -66,7 +69,14 @@ def analytical_ik(pd, dh):
 
     for sign1 in [-1, 1]:
         try:
-            q1 = sign1 * np.arctan2(np.sqrt(B**2 + A**2 - d4**2), d4) + np.arctan2(B, -A)
+            crit_value = B**2 + A**2 - d4**2
+            if crit_value < -0.015:
+                raise ValueError(
+                    f"[IK ERROR] Invalid value under sqrt: {crit_value:.6f} (should be ≥ 0). "
+                    "Likely an unreachable pose or bug in transformation."
+                )
+            crit_value = max(crit_value, 0)
+            q1 = sign1 * np.arctan2(np.sqrt(crit_value), d4) + np.arctan2(B, -A)
             c1 = np.cos(q1)
             s1 = np.sin(q1)
 
@@ -79,10 +89,10 @@ def analytical_ik(pd, dh):
                 c5 = np.cos(q5)
                 s5 = np.sin(q5)
 
-                if s5:
-                    q6 = np.arctan2(D / s5, E / s5)
-                else:
+                if abs(s5) < 1e-6:
                     q6 = 0
+                else:
+                    q6 = np.arctan2(D / s5, E / s5)
                 c6 = np.cos(q6)
                 s6 = np.sin(q6)
 
@@ -92,14 +102,16 @@ def analytical_ik(pd, dh):
                 c234 = np.cos(q234)
                 s234 = np.sin(q234)
 
-                KC = c1 * px + s1 * py - s234 * d5 + c234 * d6
+                KC = c1 * px + s1 * py - s234 * d5 + c234 * s5 * d6
                 KS = pz - d1 + c234 * d5 + s234 * s5 * d6
 
-                c3 = (KS**2 + KC**2 - a2**2 - a3**2) / (2 * a2 * a3)
-                if c3 > 1:
-                    # print("No viable solutions for sign1:", sign1, "sign5:", sign5)
-                    continue
 
+
+                c3 = (KS**2 + KC**2 - a2**2 - a3**2) / (2 * a2 * a3)
+                if c3 < -1.02 or c3 > 1.02:
+                    raise ValueError(f"Invalid c3 value: {c3}, likely unreachable or incorrect math.")
+                else:
+                    c3 = np.clip(c3, -1.0, 1.0)
 
                 # plus-minus is wrong on the reference, should be on (27) instead of (28)
                 for sign3 in [-1, 1]:
@@ -113,10 +125,12 @@ def analytical_ik(pd, dh):
                     # Offset for theta2 = pi / 2 in robot description
                     q2 = q2 + np.pi/2
 
+                    solution = np.array([wrap_angle(q) for q in [q1, q2, q3, q4, q5, q6]])
                     solution = np.array([q1, q2, q3, q4, q5, q6])
-                    # print("Solution for sign1:", sign1, "sign5:", sign5, "sign3:", sign3, ":", solution)
+                    #print("Solution for sign1:", sign1, "sign5:", sign5, "sign3:", sign3, ":", solution)
                     solutions.append(solution)
-        except:
+        except ValueError as e:
+            print(f"[IK WARNING] Skipping solution due to error: {e}")
             continue
     return solutions
 

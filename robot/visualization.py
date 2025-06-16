@@ -3,7 +3,7 @@ from matplotlib.animation import FuncAnimation
 import numpy as np
 
 def plot_robot(joint_positions, rotation_axes=None, ax=None, obstacles=None, title="Robot Pose"):
-    xs, ys, zs = zip(*joint_positions)
+
 
     if ax is None:
         fig = plt.figure()
@@ -131,9 +131,9 @@ def plot_robot(joint_positions, rotation_axes=None, ax=None, obstacles=None, tit
     ax.set_title(title)
     ax.legend()
     ax.set_box_aspect([1, 1, 1])  # Equal aspect ratio
-    #plt.show()
+    plt.show()
 
-def visualize_trajectory(joint_trajectory, cartesian_trajectory, all_joint_positions, dh):
+def visualize_trajectory(joint_trajectory, cartesian_trajectory, all_joint_positions, obstacles= None):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
@@ -153,7 +153,7 @@ def visualize_trajectory(joint_trajectory, cartesian_trajectory, all_joint_posit
         joint_positions, rotation_axes = all_joint_positions[frame]
         # for i, joint in enumerate(joint_positions):
         #     print(f"Joint {i + 1} z-position: {joint[2]}")
-        plot_robot(joint_positions, rotation_axes, ax=ax, obstacles=None, title=f"Step {frame+1}")
+        plot_robot(joint_positions, rotation_axes, ax=ax, obstacles=obstacles, title=f"Step {frame+1}")
 
         ax.legend()
         ax.set_xlim([-1, 1])
