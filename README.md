@@ -93,6 +93,10 @@ The script performs:
 
 #### Note: Picking objects are not defined as obstacles so robot does not avoid contacts.
 
+## Testing
+
+To be implemented...
+
 ## Design Notes:
 
 - Kinematics are implemented analytically for 6R arms using DH parameters.
