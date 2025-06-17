@@ -160,7 +160,12 @@ def generate_joint_trajectory(start, end, dh, obstacles):
                 joint_positions, rotation_axes = fk(dh, candidate)
                 if check_collisions(joint_positions, obstacles) == -1:
                     J = get_jacobian(joint_positions, rotation_axes)
-                    manipulability = np.sqrt(np.linalg.det(J @ J.T))
+                    try:
+                        manipulability = np.sqrt(np.linalg.det(J @ J.T))
+                        if np.isnan(manipulability) or manipulability < 1e-6:
+                            continue
+                    except np.linalg.LinAlgError:
+                        continue
                     if manipulability > max_manipulability:
                         max_manipulability = manipulability
                         best_solution = candidate

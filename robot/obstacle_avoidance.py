@@ -26,6 +26,5 @@ def check_collisions(joint_positions, obstacles):
             closest = get_closest_point_to_obstacle(a, b, obs)
             distance = np.linalg.norm(closest - obs)
             if distance < obstacle['radius'] + link_radius:
-                print(f"Collision with obstacle at Link {i + 1}")
                 return i
     return -1

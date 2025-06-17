@@ -73,7 +73,7 @@ def analytical_ik(pd, dh):
             if crit_value < -0.015:
                 raise ValueError(
                     f"[IK ERROR] Invalid value under sqrt: {crit_value:.6f} (should be ≥ 0). "
-                    "Likely an unreachable pose or bug in transformation."
+                    "Likely an unreachable pose."
                 )
             crit_value = max(crit_value, 0)
             q1 = sign1 * np.arctan2(np.sqrt(crit_value), d4) + np.arctan2(B, -A)
@@ -109,7 +109,7 @@ def analytical_ik(pd, dh):
 
                 c3 = (KS**2 + KC**2 - a2**2 - a3**2) / (2 * a2 * a3)
                 if c3 < -1.02 or c3 > 1.02:
-                    raise ValueError(f"Invalid c3 value: {c3}, likely unreachable or incorrect math.")
+                    raise ValueError(f"Invalid c3 value: {c3}, likely an unreachable pose.")
                 else:
                     c3 = np.clip(c3, -1.0, 1.0)
 

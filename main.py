@@ -65,6 +65,20 @@ def main():
     start_fk = joints_fk[0][0][-1]
     end_fk = joints_fk[-1][0][-1]
 
+
+
+    # Plot joint angle trajectories
+    for i in range(joint_trajectory.shape[1]):
+        plt.plot(joint_trajectory[:, i], label=f'Joint {i+1}')
+    #     print(f'Joint {i+1}:', joint_trajectory[:, i])
+
+    plt.legend()
+    plt.title("Joint angles over trajectory")
+    plt.xlabel("Step")
+    plt.ylabel("Angle (rad)")
+    plt.grid()
+    plt.show()
+
     if not np.allclose(start_fk, start_pose[:3], atol=1e-3):
         print("Joint trajectory does not start at the expected start pose!")
         print("Expected:", start_pose[:3])
@@ -76,18 +90,11 @@ def main():
         print("Joint trajectory does not reach the expected goal pose!")
         print("Expected:", end_pose[:3])
         print("Got     :", end_fk)
-
-    # Plot joint angle trajectories
-    for i in range(joint_trajectory.shape[1]):
-        plt.plot(joint_trajectory[:, i], label=f'Joint {i+1}')
-        print(f'Joint {i+1}:', joint_trajectory[:, i])
-
-    plt.legend()
-    plt.title("Joint angles over trajectory")
-    plt.xlabel("Step")
-    plt.ylabel("Angle (rad)")
-    plt.grid()
-    plt.show()
+    else:
+        if len(joint_trajectory) < 50:
+            print("Joint trajectory reaches at the expected pose with missing steps!")
+        else:
+            print("Joint trajectory reaches at the expected pose.")
 
     # Visualize the full motion
     visualize_trajectory(joint_trajectory, cart_trajectory, joints_fk, obstacles=obstacles)
