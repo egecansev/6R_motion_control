@@ -20,12 +20,12 @@ def check_workspace(start_pose, end_pose, robot):
             end_range = np.linalg.norm(end_pose[:2])
             if start_range < inner:
                 if end_range < inner:
-                    print("Beware! Both selected poses are beyond inner workspace limit! Unexpected behavior might occur!")
+                    print("Beware! Both selected poses are inside inner workspace limit! Unexpected behavior might occur!")
                 else:
-                    print("Beware! First selected pose is beyond inner workspace limit! Unexpected behavior might occur!")
+                    print("Beware! First selected pose is inside inner workspace limit! Unexpected behavior might occur!")
             else:
                 if end_range < inner:
-                    print("Beware! Second selected pose is beyond inner workspace limit! Unexpected behavior might occur!")
+                    print("Beware! Second selected pose is inside inner workspace limit! Unexpected behavior might occur!")
             return True
     return False
 

@@ -40,17 +40,23 @@ def run_pick_and_place():
     # Ask user for pose input
     use_custom_poses = input("Do you want to input your own pick and place poses? (y/n): ").strip().lower() == 'y'
 
-    # Get pick/place poses
-    if use_custom_poses:
-        pick_pose = prompt_for_pose("Pick")
-        place_pose = prompt_for_pose("Place")
-    else:
-        pick_pose = random_cartesian_pose(x_range, y_range, z_range, rpy_range_deg)
-        place_pose = random_cartesian_pose(x_range, y_range, z_range, rpy_range_deg)
+
 
     while True:
 
+        # Get pick/place poses
+        if use_custom_poses:
+            pick_pose = prompt_for_pose("Pick")
+            place_pose = prompt_for_pose("Place")
+        else:
+            pick_pose = random_cartesian_pose(x_range, y_range, z_range, rpy_range_deg)
+            place_pose = random_cartesian_pose(x_range, y_range, z_range, rpy_range_deg)
+            print("Pick Pose:", pick_pose)
+            print("Place Pose:", place_pose)
+
         poses = [home_pose, pick_pose, place_pose, home_pose]
+
+
 
         obstacles = []
         if use_obstacles:
@@ -65,14 +71,12 @@ def run_pick_and_place():
         all_cartesian = []
         all_fk = []
 
-        for i in range(len(poses) - 1):
-            start = poses[i]
-            end = poses[i+1]
-            if not check_workspace(start, end, robot):
-                print(f"Segment {i}: Workspace violation between start and end poses.")
-                return
+        if not check_workspace(pick_pose, place_pose, robot):
+            print(f"Segment {i}: Workspace violation between start and end poses.")
+            continue
 
-            cartesian, trajectory, fk_data = generate_joint_trajectory(start, end, robot.dh_param, obstacles)
+        for i in range(len(poses) - 1):
+            cartesian, trajectory, fk_data = generate_joint_trajectory(poses[i], poses[i], robot.dh_param, obstacles)
             if len(trajectory) == 0:
                 print(f"Segment {i}: Trajectory generation failed.")
                 return
