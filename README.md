@@ -70,6 +70,8 @@ python main.py
 
 The script checks kinematic feasibility, plans the trajectory, and visualizes it.
 
+#### Note: Some solution may not be the complete due to unavailable IK solution.
+
 ### 2. Pick-and-Place Execution
 
 Run the full scenario:
@@ -88,6 +90,8 @@ The script performs:
 - Optional obstacle inclusion
 
 - Animated 3D visualization and joint angle plots
+
+#### Note: Picking objects are not defined as obstacles so robot does not avoid contacts.
 
 ## Design Notes:
 
