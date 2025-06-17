@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
+import time
 
 def plot_robot(joint_positions, rotation_axes=None, ax=None, obstacles=None, title="Robot Pose"):
 
@@ -131,29 +132,81 @@ def plot_robot(joint_positions, rotation_axes=None, ax=None, obstacles=None, tit
     ax.set_title(title)
     ax.legend()
     ax.set_box_aspect([1, 1, 1])  # Equal aspect ratio
-    plt.show()
+    #plt.show()
 
-def visualize_trajectory(joint_trajectory, cartesian_trajectory, all_joint_positions, obstacles= None):
+def visualize_trajectory(joint_trajectory, cartesian_trajectory, all_joint_positions,
+                         obstacles=None, animate_object=False, pick_index=None,
+                         place_index=None, object_init_pos=None):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    # Extract x, y, z coordinates
     ee_x = [p[0] for p in cartesian_trajectory]
     ee_y = [p[1] for p in cartesian_trajectory]
     ee_z = [p[2] for p in cartesian_trajectory]
 
+    if animate_object and object_init_pos:
+        object_pos = object_init_pos.copy()
+    else:
+        object_pos = None
+    carrying_object = False
+    object_color = ['cyan']
+
+
     def update(frame):
         ax.cla()
 
+        # Clamp frame to length to avoid index errors if frame is out of range
+        f = min(frame, len(all_joint_positions) - 1)
+
+        joint_positions, rotation_axes = all_joint_positions[f]
+
+        nonlocal object_pos, carrying_object
+
+        # Determine carrying state and object color
+        if pick_index is not None and place_index is not None:
+            if f == 0:
+                start_time = time.time()
+                while True:
+                    if time.time() - start_time > 1:
+                        break
+            elif f < pick_index:
+                carrying_object = False
+                object_color[0] = 'cyan'
+                object_pos = object_init_pos
+            elif f == pick_index:
+                carrying_object = False  # just touching or picking
+                start_time = time.time()
+                while True:
+                    if time.time() - start_time > 1:
+                        break
+            elif pick_index <= f < place_index:
+                carrying_object = True
+                object_color[0] = 'green'
+            elif f == place_index:
+                carrying_object = True
+                object_color[0] = 'green'
+                start_time = time.time()
+                while True:
+                    if time.time() - start_time > 1:
+                        break
+            elif place_index < f:
+                carrying_object = False
+                object_color[0] = 'cyan'
+
+
+            # Update object position
+            if carrying_object:
+                object_pos = joint_positions[-1]
+
+        # Plot object
+        if object_pos is not None:
+            ax.scatter(*object_pos, color=object_color[0], s=100, label='Object')
+
         # Plot static Cartesian trajectory
         ax.plot(ee_x, ee_y, ee_z, color='blue', linestyle='--', label='Cartesian Trajectory')
-        #ax.scatter(ee_x[frame], ee_y[frame], ee_z[frame], color='red', s=50, label='End-effector')
 
-        # Plot the robot at current frame
-        joint_positions, rotation_axes = all_joint_positions[frame]
-        # for i, joint in enumerate(joint_positions):
-        #     print(f"Joint {i + 1} z-position: {joint[2]}")
-        plot_robot(joint_positions, rotation_axes, ax=ax, obstacles=obstacles, title=f"Step {frame+1}")
+        # Plot robot at current frame
+        plot_robot(joint_positions, rotation_axes, ax=ax, obstacles=obstacles, title=f"Step {f+1}")
 
         ax.legend()
         ax.set_xlim([-1, 1])
@@ -163,6 +216,8 @@ def visualize_trajectory(joint_trajectory, cartesian_trajectory, all_joint_posit
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
 
-    ani = FuncAnimation(fig, update, frames=len(joint_trajectory), interval=100)
+    # Increase total frames to hold pick and place frames longer
+    total_frames = len(joint_trajectory)
+    ani = FuncAnimation(fig, update, frames=total_frames, interval=100, blit=False)
     plt.tight_layout()
     plt.show()

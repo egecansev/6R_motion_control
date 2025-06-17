@@ -1,12 +1,12 @@
 import numpy as np
-from scipy.spatial.transform import Rotation as R
+from scipy.spatial.transform import Rotation
 
 def fk(dh, q):
     pose = np.eye(4)
     tf_matrices = []
     joint_positions = [(0.0, 0.0, 0.0)]
     rotation_axes = []
-    transformation_matrix = []
+
     for i, (theta, a, d, alpha) in enumerate(dh):
         ct = np.cos(theta + q[i])
         st = np.sin(theta + q[i])
@@ -34,7 +34,7 @@ def euler_to_matrix(pd):
     roll = np.deg2rad(pd[0])
     pitch = np.deg2rad(pd[1])
     yaw = np.deg2rad(pd[2])
-    rot_mat = R.from_euler('xyz', [roll, pitch, yaw])
+    rot_mat = Rotation.from_euler('xyz', [roll, pitch, yaw])
     return rot_mat.as_matrix()
 
 def wrap_angle(theta):
@@ -125,9 +125,8 @@ def analytical_ik(pd, dh):
                     # Offset for theta2 = pi / 2 in robot description
                     q2 = q2 + np.pi/2
 
-                    solution = np.array([wrap_angle(q) for q in [q1, q2, q3, q4, q5, q6]])
+                    #solution = np.array([wrap_angle(q) for q in [q1, q2, q3, q4, q5, q6]])
                     solution = np.array([q1, q2, q3, q4, q5, q6])
-                    #print("Solution for sign1:", sign1, "sign5:", sign5, "sign3:", sign3, ":", solution)
                     solutions.append(solution)
         except ValueError as e:
             print(f"[IK WARNING] Skipping solution due to error: {e}")

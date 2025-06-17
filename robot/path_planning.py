@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.spatial.transform import Rotation as R, Slerp
+from scipy.spatial.transform import Rotation, Slerp
 from robot import analytical_ik, check_collisions, fk, get_closest_point_to_obstacle
 from scipy.signal import savgol_filter
 
@@ -105,7 +105,7 @@ def generate_cartesian_trajectory(start_pose, end_pose, steps = 50, obstacles = 
     rpy_end = np.array(end_pose[3:])
 
     # Use Spherical Linear Interpolation of Rotations (SLERP) for rotations
-    key_rots = R.from_euler('xyz', [rpy_start, rpy_end], degrees= True)
+    key_rots = Rotation.from_euler('xyz', [rpy_start, rpy_end], degrees= True)
     key_times = [0, 1]
     slerp = Slerp(key_times, key_rots)
 
@@ -172,6 +172,8 @@ def generate_joint_trajectory(start, end, dh, obstacles):
             continue
         joint_trajectory.append(best_solution)
         all_joint_positions.append((best_joint_positions, best_rotation_axes))
+
+        # TODO: If no solution found, check alternatives: paths, RRT, PRM, CHOMP?
 
     trajectory_np = np.array(joint_trajectory)  # shape (N, 6)
 
