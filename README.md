@@ -77,6 +77,9 @@ Run the full scenario:
 ```bash
 python pick_and_place.py
 ```
+- Choose between custom or random pick/place poses
+
+- Choose whether to include obstacles
 
 The script performs:
 
