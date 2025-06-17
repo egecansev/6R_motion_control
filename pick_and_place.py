@@ -72,11 +72,11 @@ def run_pick_and_place():
         all_fk = []
 
         if not check_workspace(pick_pose, place_pose, robot):
-            print(f"Segment {i}: Workspace violation between start and end poses.")
+            print(f"Workspace violation between start and end poses.")
             continue
 
         for i in range(len(poses) - 1):
-            cartesian, trajectory, fk_data = generate_joint_trajectory(poses[i], poses[i], robot.dh_param, obstacles)
+            cartesian, trajectory, fk_data = generate_joint_trajectory(poses[i], poses[i+1], robot.dh_param, obstacles)
             if len(trajectory) == 0:
                 print(f"Segment {i}: Trajectory generation failed.")
                 return
