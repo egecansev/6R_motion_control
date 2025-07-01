@@ -112,3 +112,5 @@ To be implemented...
 ## Author
 
 ### Ege Cansev
+
+**Note:** This repository contains personal projects only. My professional contributions in robotics projects are private due to confidentiality agreements and are not available on GitHub. However, I am open to walking through examples or discussing project details during an online meeting upon request.
